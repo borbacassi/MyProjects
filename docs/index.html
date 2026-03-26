@@ -804,20 +804,52 @@
     const note = notes.find(n => n.id === id);
     document.getElementById('viewTitle').textContent = note.title || 'Sem título';
     document.getElementById('viewMeta').textContent = `${note.folder} · ${formatDate(note.updatedAt)}`;
-    document.getElementById('viewBody').textContent = note.body;
 
+    const bodyEl = document.getElementById('viewBody');
     const area = document.getElementById('htmlPreviewArea');
-    const isHTML = note.body.trim().startsWith('<') || /<\w+[\s>]/.test(note.body);
+
+    const isHTML = /<(!DOCTYPE|html|head|body|div|p|span|h[1-6]|script|style|canvas|img|ul|ol|li|table|form|input|button|a)[\s>]/i.test(note.body);
+
     if (isHTML) {
-      area.innerHTML = `<div class="html-preview-wrap"><div class="html-preview-bar">PRÉVIA HTML</div></div>`;
+      // hide raw text, show only rendered iframe
+      bodyEl.style.display = 'none';
+      area.innerHTML = `
+        <div class="html-preview-wrap">
+          <div class="html-preview-bar">
+            RENDERIZADO
+            <button onclick="toggleHTMLSource()" id="srcToggle" style="margin-left:auto;background:none;border:1px solid var(--border2);color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:0.55rem;padding:2px 8px;border-radius:3px;cursor:pointer;letter-spacing:0.1em;">VER CÓDIGO</button>
+          </div>
+        </div>`;
       const iframe = document.createElement('iframe');
       iframe.className = 'html-preview-frame';
+      iframe.id = 'htmlIframe';
+      iframe.style.minHeight = '400px';
       area.querySelector('.html-preview-wrap').appendChild(iframe);
       iframe.srcdoc = note.body;
+
+      // hidden raw source block
+      const pre = document.createElement('pre');
+      pre.id = 'htmlSource';
+      pre.style.cssText = 'display:none;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:1.2rem;font-family:"JetBrains Mono",monospace;font-size:0.72rem;color:var(--text2);line-height:1.6;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin-top:0;';
+      pre.textContent = note.body;
+      area.querySelector('.html-preview-wrap').appendChild(pre);
     } else {
+      bodyEl.style.display = '';
+      bodyEl.textContent = note.body;
       area.innerHTML = '';
     }
     showPage('view');
+  }
+
+  function toggleHTMLSource() {
+    const iframe = document.getElementById('htmlIframe');
+    const pre = document.getElementById('htmlSource');
+    const btn = document.getElementById('srcToggle');
+    if (!iframe || !pre) return;
+    const showing = pre.style.display !== 'none';
+    iframe.style.display = showing ? '' : 'none';
+    pre.style.display = showing ? 'none' : 'block';
+    btn.textContent = showing ? 'VER CÓDIGO' : 'VER PRÉVIA';
   }
 
   function editCurrentNote() { if (viewingNoteId) openEditor(viewingNoteId); }
